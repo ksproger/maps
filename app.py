@@ -47,4 +47,4 @@ def handle_update(data):
         emit("locations", user_locations, broadcast=True)
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    socketio.run(app, debug=True, port=5000, allow_unsafe_werkzeug=True)
