@@ -93,8 +93,18 @@ function manualRefresh(){
 }
 
 function clearCache(){
-    fetch("/admin/clear",{method:"POST"}).then(()=>alert("Кеш очищен"));
+    fetch("/admin/clear",{method:"POST"}).then(()=>{
+        alert("Кеш очищен");
+        // Удаляем все маркеры с карты
+        for(const id in markers){
+            map.removeLayer(markers[id]);
+        }
+        markers = {};
+        // Обновляем таблицу
+        document.getElementById("userTable").innerHTML = "";
+    });
 }
+
 
 function deleteUser(uid){
     fetch(`/admin/delete/${uid}`,{method:"POST"}).then(()=>alert("Пользователь удален"));
