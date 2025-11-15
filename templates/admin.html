@@ -13,15 +13,21 @@
 
 <div class="container">
     <h2>Админ-панель</h2>
+    <div class="d-flex justify-content-between mb-2">
+        <button class="btn btn-primary" onclick="manualRefresh()">Обновить</button>
+        <button class="btn btn-danger" onclick="clearCache()">Очистить кеш</button>
+    </div>
     <div id="map" style="height:60vh;"></div>
     <table class="table table-striped table-bordered mt-3">
         <thead class="table-dark">
             <tr>
                 <th>ID</th>
+                <th>Имя</th>
                 <th>Latitude</th>
                 <th>Longitude</th>
                 <th>Статус</th>
                 <th>Последнее обновление</th>
+                <th>Действия</th>
             </tr>
         </thead>
         <tbody id="userTable"></tbody>
@@ -30,7 +36,7 @@
 
 <script>
 const map = L.map("map").setView([0,0],2);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19}).addTo(map);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19}).addTo(map);
 
 const socket = io();
 let markers = {};
@@ -51,22 +57,58 @@ socket.on("locations", users => {
         const lon = u.lon;
         const last = u.last_update;
         const online = (now - last) < 10;
+        const name = u.name || id;
 
+        // Маркер
         if(!markers[id]){
-            markers[id] = L.marker([lat, lon]).addTo(map).bindPopup(id);
+            markers[id] = L.marker([lat, lon]).addTo(map).bindPopup(name);
+            markers[id].on('click', ()=>{
+                const newName = prompt("Введите новое имя:", name);
+                if(newName) renameUser(id, newName);
+            });
         } else {
             markers[id].setLatLng([lat, lon]);
+            markers[id].bindPopup(name);
         }
 
+        // Таблица
         table.innerHTML += `<tr>
             <td>${id}</td>
+            <td>${name}</td>
             <td>${lat.toFixed(5)}</td>
             <td>${lon.toFixed(5)}</td>
             <td>${online ? '<span class="text-success">online</span>' : '<span class="text-danger">offline</span>'}</td>
             <td>${formatTime(last)}</td>
+            <td>
+                <button class="btn btn-sm btn-warning" onclick="renameUser('${id}')">Имя</button>
+                <button class="btn btn-sm btn-danger" onclick="deleteUser('${id}')">Удалить</button>
+            </td>
         </tr>`;
     }
 });
+
+// Actions
+function manualRefresh(){
+    socket.emit("manual_refresh");
+}
+
+function clearCache(){
+    fetch("/admin/clear",{method:"POST"}).then(()=>alert("Кеш очищен"));
+}
+
+function deleteUser(uid){
+    fetch(`/admin/delete/${uid}`,{method:"POST"}).then(()=>alert("Пользователь удален"));
+}
+
+function renameUser(uid, newName=null){
+    if(!newName) newName = prompt("Введите новое имя:");
+    if(!newName) return;
+    fetch(`/admin/rename/${uid}`,{
+        method:"POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({name: newName})
+    });
+}
 </script>
 
 </body>
