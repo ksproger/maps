@@ -98,6 +98,12 @@ function clearCache(){
 
 function deleteUser(uid){
     fetch(`/admin/delete/${uid}`,{method:"POST"}).then(()=>alert("Пользователь удален"));
+    if(markers[uid]){
+        map.removeLayer(markers[uid]);
+        delete markers[uid];
+    }
+    // Обновляем таблицу
+    socket.emit("manual_refresh");
 }
 
 function renameUser(uid, newName=null){
